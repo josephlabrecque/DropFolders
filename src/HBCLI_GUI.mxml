@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					   xmlns:s="library://ns.adobe.com/flex/spark" 
+					   xmlns:mx="library://ns.adobe.com/flex/mx" creationComplete="init()" width="500" height="480" showStatusBar="false" currentState="Monitor">
+	<fx:Style source="HBCLI_GUI_1.css"/>
+	<!--fx:Style source="HBCLI_GUI.css"/-->
+	
+	<s:states>
+		<s:State name="Monitor"/>
+	</s:states>
+	
+	<fx:Script>
+		<![CDATA[
+			import edu.du.controllers.FileController;
+			import edu.du.controllers.TranscodeController;
+			import edu.du.data.PresetStore;
+			
+			import flash.desktop.NativeProcess;
+			import flash.events.Event;
+			import flash.filesystem.File;
+			import flash.system.Capabilities;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.ItemClickEvent;
+			import mx.events.ListEvent;
+			
+			import spark.events.IndexChangeEvent;
+			
+			//private var config:ConfigStore;
+			public var os:String;
+			public var pathDivider:String;
+			public var fileController:FileController;
+			
+			private var transcodeController:TranscodeController;
+			private var file:File;
+			private var presetID:int;
+			private var preset:PresetStore;
+			
+			[Bindable] public var isOK:Boolean;
+			[Bindable] private var isEdit:Boolean;
+			[Bindable] public var presetCollection:ArrayCollection;
+			//[Bindable] private var hbLoc:String;
+			[Bindable] private var presetName:String;
+			[Bindable] private var presetWatch:String;
+			[Bindable] private var presetDest:String;
+			[Bindable] private var presetArgs:String;
+			[Bindable] private var presetOrig:String;
+			
+			//DU
+			private var preset0:String = "-f mp4 -O -w 512 -e x264 -b 1000 -a 1 -E faac -6 stereo -R 44.1 -B 128 -D 0.0 -x ref=2:bframes=3:subq=6:mixed-refs=0:8x8dct=0:trellis=0:weightb=0:no-fast-pskip=1 -v 1";
+			
+			//normal
+			private var preset1:String = "-e x264 -q 20.0 -a 1 -E faac -B 160 -6 dpl2 -R 48 -D 0.0 -f mp4 --strict-anamorphic -m ref=2:bframes=2:subme=6:mixed-refs=0:weightb=0:8x8dct=0:trellis=0";
+			
+			//ipod
+			private var preset2:String = "-e x264 -b 700 -a 1 -E faac -B 160 -6 dpl2 -R 48 -D 0.0 -f mp4 -I -X 320 -m level=30:bframes=0:cabac=0:ref=1:vbv-maxrate=768:vbv-bufsize=2000:analyse=all:me=umh:no-fast-pskip=1:subme=6:8x8dct=0:trellis=0";
+			
+			
+			private function init():void {
+				if(NativeProcess.isSupported){
+					setup();
+				}else{
+					Alert.show("Not Good.");
+				}
+			}
+			
+			private function setup():void {
+				os = Capabilities.os.substr(0, 3).toLowerCase();
+				if(os == "win"){
+					pathDivider = "\\";
+				}else{
+					pathDivider = "/";
+				}
+				
+				addEventListener(Event.ENTER_FRAME, checkForm);
+				isOK = true;
+				presetName = "";
+				presetWatch = "";
+				presetDest = "";
+				presetArgs = "";
+				presetOrig = "0";
+				//config = new ConfigStore();
+				preset = new PresetStore();
+				fileController = new FileController();
+				transcodeController = new TranscodeController();
+				//hbLoc = config.readConfig();
+				versionLabel.text = getAppVersion();
+			}
+			
+			private function getAppVersion():String {
+				var appXml:XML = NativeApplication.nativeApplication.applicationDescriptor;
+				var ns:Namespace = appXml.namespace();
+				var appVersion:String = appXml.ns::version[0];
+				return appVersion;
+			}
+			public function processRunning():Boolean {
+				return transcodeController.processRunning();
+			}
+			private function checkForm(e:Event):void {
+				if(isEdit){
+					saveBtn.enabled = true;
+					copyBtn.enabled = true;
+					deleteBtn.enabled = true;
+					clearBtn.enabled = true;
+					if(presetName == "" || presetWatch == "" || presetDest == "" || presetArgs == ""){
+						saveBtn.enabled = false;
+						copyBtn.enabled = false;
+						deleteBtn.enabled = true;
+						clearBtn.enabled = true;
+					}
+				}else{
+					saveBtn.enabled = true;
+					copyBtn.enabled = false;
+					deleteBtn.enabled = false;
+					clearBtn.enabled = true;
+					if(presetName == "" || presetWatch == "" || presetDest == "" || presetArgs == ""){
+						saveBtn.enabled = false;
+						copyBtn.enabled = false;
+						deleteBtn.enabled = false;
+						clearBtn.enabled = true;
+					}
+				}
+				if(presetName == "" && presetWatch == "" && presetDest == "" && presetArgs == ""){
+					clearBtn.enabled = false;
+				}
+			}
+			/*
+			private function browseHandBrake(e:MouseEvent):void {
+				file = new File();
+				file.addEventListener(Event.SELECT, selectHandler);
+				file.browse();
+			}
+			private function selectHandler(e:Event):void {
+				file = File(e.target);
+				hbLoc = file.nativePath;
+				config.writeConfig(hbLoc);
+			}
+			*/
+			private function browseWatch(e:MouseEvent):void {
+				file = new File();
+				file.addEventListener(Event.SELECT, selectWatch);
+				file.browseForDirectory("Select Watch Folder");
+			}
+			private function selectWatch(e:Event):void {
+				file = File(e.target);
+				presetWatch = file.nativePath;
+			}
+			
+			private function browseDest(e:MouseEvent):void {
+				file = new File();
+				file.addEventListener(Event.SELECT, selectDest);
+				file.browseForDirectory("Select Destination Folder");
+			}
+			private function selectDest(e:Event):void {
+				file = File(e.target);
+				presetDest = file.nativePath;
+			}
+			private function origChanged(e:Event):void {
+				if(e.target.selected){
+					presetOrig = "1";
+				}else{
+					presetOrig = "0";
+				}
+			}
+			private function editPreset(e:IndexChangeEvent):void {
+				isEdit = true;
+				presetID = e.target.dataProvider[e.newIndex].id;
+				presetName = e.target.dataProvider[e.newIndex].name;
+				presetWatch = e.target.dataProvider[e.newIndex].watch;
+				presetDest = e.target.dataProvider[e.newIndex].dest;
+				presetArgs = e.target.dataProvider[e.newIndex].args;
+				presetOrig = e.target.dataProvider[e.newIndex].orig;
+				if(presetOrig == "0"){
+					preserveRadio.selected = false;
+				}else{
+					preserveRadio.selected = true;
+				}
+			}
+			private function savePreset():void {
+				if(isEdit){
+					preset.writeData(presetName, presetWatch, presetDest, presetArgs, presetOrig, presetID);
+				}else{
+					preset.writeData(presetName, presetWatch, presetDest, presetArgs, presetOrig);
+				}
+			}
+			private function copyPreset():void {
+				preset.writeData(presetName, presetWatch, presetDest, presetArgs, presetOrig);
+			}
+			public function clearPresetValues():void {
+				presetName = "";
+				presetWatch = "";
+				presetDest = "";
+				presetArgs = "";
+				presetOrig = "0";
+				isEdit = false;
+				preset.readData();
+			}
+			private function deletePreset():void {
+				preset.deleteData(presetID);
+			}
+			public function beginProcess(i:String, o:String, a:String):void {
+				//if(hbLoc != ""){
+					//var hbFile:File = new File(hbLoc);
+				transcodeController.invokeHB(i, o, a);
+				//}else{
+					//what about HB?
+				//}
+			}
+			private function endProcess():void {
+				//transcodeController.killHB();
+			}
+		]]>
+	</fx:Script>
+
+	<mx:Image source="assets/HBskin.png" />
+	<mx:Image x="222" y="187" source="assets/folder.png" width="16" height="16"/>
+	<mx:Image x="222" y="137" source="assets/folder.png" width="16" height="16"/>
+
+	<s:Label x="212" y="45" fontSize="9" id="versionLabel" color="#888888"/>
+	
+	<mx:LinkButton x="332" y="4" label="Made possible with HandBrake" fontSize="10" click="{navigateToURL(new URLRequest(&quot;http://handbrake.fr/&quot;))}" color="#5E5E5E"/>
+	
+	<s:TextArea id="outputLabel" contentBackgroundColor="#000000" left="10" right="57" editable="false" fontSize="11" height="84" bottom="10" contentBackgroundAlpha="0.7" borderColor="#D4D4D4"/>
+	
+	
+	<s:Label text="Preset Name" left="10" top="70"/>
+	<s:TextInput text="@{presetName}" left="10" top="85" width="230"/>
+
+	<s:Label text="Watch Folder" left="10" top="120"/>
+	<s:TextInput text="@{presetWatch}" left="10" top="135" width="205"/>
+	<s:Button x="219" y="135" alpha="0.7" width="22" click="browseWatch(event)" height="22" fontSize="8" fontWeight="normal"/>
+	
+	<s:Label x="10" y="170" text="Destination Folder"/>
+	<s:TextInput text="@{presetDest}" left="10" width="205" top="185"/>
+	<s:Button x="219" y="185" alpha="0.7" width="22" click="browseDest(event)" height="22"/>
+	
+	<s:Label text="Handbrake Arguments" left="259" top="70"/>
+	<s:TextArea text="@{presetArgs}" height="72" top="110" right="10" width="230" borderColor="#B2B2B2"/>
+	
+	<s:Button id="saveBtn" label="Save" left="10" top="225" click="savePreset()" width="114" height="30" fontSize="14" fontWeight="bold"/>
+	<s:Button id="copyBtn" label="Copy" top="225" click="copyPreset()" right="254" width="114" height="30" fontSize="14" fontWeight="bold"/>
+	<s:Button id="deleteBtn" label="Delete" top="225" click="deletePreset()" left="254" width="114" height="30" fontSize="14" fontWeight="bold"/>
+	<s:Button id="clearBtn" label="Clear" right="10" top="225" click="clearPresetValues()" width="114" height="30" fontSize="14" fontWeight="bold"/>
+	
+	<s:Label text="Saved Presets" left="10" bottom="193"/>
+	<s:Label text="Current Process Log" left="10" bottom="96"/>
+	<s:List height="76" bottom="114" left="10" right="10" dataProvider="{presetCollection}" labelField="name" change="editPreset(event)"></s:List>
+	
+	<s:ToggleButton label="!" toolTip="Toogle Watch Folder Monitor" selected="@{isOK}" height="40" width="40" right="10" bottom="10" fontSize="26" fontWeight="bold" color="#000000"/>
+	<s:Button label="?" toolTip="About" click="Alert.show('Adobe AIR 2.0 application to allow HandBrake CLI to monitor watch and destination folders. Includes the ability to define and manage custom presets.\n\nArguments for presets can be generated from the HandBrake GUI, or by doing some simple searches on the Web.\n\nThis software relies on HandBrake [http://handbrake.fr/] (INCLUDED).\n\nThis application was authored by Joseph Labrecque, Senior Multimedia Application Developer for the University of Denver and Adobe Education Leader.\n\nFor feedback or questions:\nEmail: Joseph.Labrecque@du.edu', 'About DropFolders '+versionLabel.text)" height="40" width="40" right="10" bottom="55" fontSize="26" color="#000000" fontWeight="bold"/>
+	
+	<s:Button x="259" y="85" label="DU" click="presetArgs=preset0"/>
+	<s:Button x="339" y="85" label="Normal" click="presetArgs=preset1"/>
+	<s:Button x="419" y="85" label="iPod" click="presetArgs=preset2"/>
+	
+	<s:CheckBox x="260" y="190" change="origChanged(event)" label="Preserve Original Files" id="preserveRadio"/>
+	
+	
+	
+	
+</s:WindowedApplication>

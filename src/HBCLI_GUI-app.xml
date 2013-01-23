@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<application xmlns="http://ns.adobe.com/air/application/2.0">
+	
+	<supportedProfiles>extendedDesktop desktop</supportedProfiles>
+	<id>edu.du.ctl.DropFolders</id>
+	<filename>DropFolders</filename>
+	<name>DropFolders</name>
+	<version>1.1.63</version>
+	<description>Application to allow Watch and Destination folders on Windows and OSX systems. Includes the ability to define and manage custom presets. This software relies on HandBrake [http://handbrake.fr/]. HandBrake CLI is included in this installation.</description>
+	<copyright>2010 Joseph Labrecque; HandBrake: http://handbrake.fr/</copyright>
+	
+	<initialWindow>
+		<content>[This value will be overwritten by Flash Builder in the output app.xml]</content>
+		<title>DropFolders</title>
+		<maximizable>false</maximizable>
+		<resizable>false</resizable>
+	</initialWindow>
+
+	<icon>
+		<image16x16>assets/i16.png</image16x16>
+		<image32x32>assets/i32.png</image32x32>
+		<image48x48>assets/i48.png</image48x48>
+		<image128x128>assets/i128.png</image128x128>
+	</icon>
+
+</application>

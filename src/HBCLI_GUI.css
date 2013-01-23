@@ -1,0 +1,59 @@
+/* CSS file */
+@namespace s "library://ns.adobe.com/flex/spark";
+@namespace mx "library://ns.adobe.com/flex/mx";
+
+
+global
+{
+	chrome-color: #E3E3E3;
+	focus-color: #C1956A;
+	selection-color: #EEE0A8;
+	roll-over-color: #EFEACE;
+	content-background-color: #EFEFEF;
+	symbol-color: #270C02;
+}
+s|List
+{
+	color: #000000;
+	contentBackgroundAlpha: 0.9;
+	borderColor: #692F00;
+	chromeColor: #FFFFFF;
+	contentBackgroundColor: #000000;
+	focusColor: #96581C;
+	rollOverColor: #823D00;
+	selectionColor: #682E00;
+}
+
+s|Label
+{
+	color: #E1B794;
+}
+s|TextInput
+{
+	color: #381900;
+	contentBackgroundAlpha: 0.9;
+}
+s|Button
+{
+	chromeColor: #723800;
+	color: #3F0000;
+	focusColor: #110901;
+	fontSize: 18;
+	fontWeight: bold;
+}
+s|ToggleButton
+{
+	chromeColor: #723800;
+	color: #3F0000;
+	focusColor: #110901;
+	fontSize: 18;
+	fontWeight: bold;
+}
+mx|Alert {
+	chromeColor: #ccc;
+	backgroundColor: #ccc;
+	cornerRadius: 6;
+	fontSize: 10;
+	color: #3F0000;
+	border-color: #723800;
+}
